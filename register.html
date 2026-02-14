@@ -16,51 +16,29 @@
             flex-direction: column;
             align-items: center;
         }
-        .container {
-            width: 100%;
-            max-width: 400px;
-        }
+        .container { width: 100%; max-width: 400px; }
         h2 { color: #3498db; margin-bottom: 20px; text-align: center; }
         
-        /* Dynamic Input Styles */
         .input-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; color: #aaaaaa; font-size: 14px; font-weight: bold; }
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 8px; 
-            border: 1px solid #333; 
-            background: #1e1e1e; 
-            color: white; 
-            box-sizing: border-box; 
-            font-size: 16px;
+        input, textarea { 
+            width: 100%; padding: 12px; border-radius: 8px; 
+            border: 1px solid #333; background: #1e1e1e; color: white; 
+            box-sizing: border-box; font-size: 16px;
         }
         input:focus { border-color: #3498db; outline: none; }
 
-        /* Payment Section */
         .pay-box {
-            background: #1e1e1e;
-            border: 1px solid #f39c12;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
+            background: #2c2c2c; border: 1px solid #f39c12; 
+            padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
         }
-        .pay-info { color: #f39c12; font-weight: bold; margin-bottom: 10px; }
-        .upi-text { font-family: monospace; background: #333; padding: 5px; border-radius: 4px; }
+        .pay-info { color: #f39c12; font-weight: bold; margin-bottom: 5px; }
 
         .btn { 
-            width: 100%; 
-            padding: 15px; 
-            background: #3498db; 
-            border: none; 
-            border-radius: 10px; 
-            color: white; 
-            font-size: 18px; 
-            font-weight: bold;
-            margin-top: 25px; 
+            width: 100%; padding: 15px; background: #3498db; 
+            border: none; border-radius: 10px; color: white; 
+            font-size: 18px; font-weight: bold; margin-top: 25px; 
             cursor: pointer; 
-            transition: background 0.3s;
         }
         .btn:active { transform: scale(0.98); }
         .hidden { display: none; }
@@ -74,8 +52,8 @@
 
         <div id="paySection" class="hidden pay-box">
             <div class="pay-info">💰 Entry Fee: ₹<span id="feeAmount">0</span></div>
-            <p style="font-size: 13px; color: #ccc;">Pay to UPI: <span id="upiId" class="upi-text">N/A</span></p>
-            <p style="font-size: 11px; color: #777;">(Or scan the QR code sent in chat)</p>
+            <p style="font-size: 13px; color: #e74c3c; font-weight: bold;">⚠️ SCAN QR IN CHAT ABOVE</p>
+            <p style="font-size: 12px; color: #bbb;">Pay to: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span></p>
             
             <div class="input-group" style="margin-top: 15px;">
                 <label style="color: #f39c12;">Transaction ID (UTR)</label>
@@ -91,55 +69,45 @@
         tele.ready();
         tele.expand();
 
-        // 1. URL se Data Nikalo
         const params = new URLSearchParams(window.location.search);
         const tourneyId = params.get('id');
         const isPaid = params.get('paid') === 'true';
-        const rawFields = params.get('fields') || "Name,Team"; // Default fields
+        const rawFields = params.get('fields') || "Team Name,Player Details"; 
         const fee = params.get('fee');
         const upi = params.get('upi');
 
-        // 2. Dynamic Form Banao
         const fieldsContainer = document.getElementById('dynamicFields');
-        // Comma ya New Line se split karein
-        const fieldList = rawFields.split(/[,\\n]+/).map(s => s.trim()).filter(s => s);
+        const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
 
         fieldList.forEach((fieldName, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'input-group';
-            
             const label = document.createElement('label');
             label.innerText = fieldName;
-            
             const input = document.createElement('input');
             input.type = "text";
             input.id = "field_" + index;
             input.placeholder = "Enter " + fieldName;
-            input.dataset.name = fieldName; // Store field name for later
-
+            input.dataset.name = fieldName;
             wrapper.appendChild(label);
             wrapper.appendChild(input);
             fieldsContainer.appendChild(wrapper);
         });
 
-        // 3. Paid Logic Check
         if (isPaid) {
             document.getElementById('paySection').classList.remove('hidden');
             document.getElementById('feeAmount').innerText = fee;
-            document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Check Chat for QR";
+            document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR in Chat";
         }
 
-        // 4. Submit Logic
         document.getElementById('submitBtn').addEventListener('click', () => {
             let formData = "";
             let isValid = true;
 
-            // Loop through all generated inputs
             fieldList.forEach((_, index) => {
                 const input = document.getElementById("field_" + index);
                 const val = input.value.trim();
                 const name = input.dataset.name;
-                
                 if (!val) isValid = false;
                 formData += `<b>${name}:</b> ${val}\n`;
             });
@@ -147,23 +115,27 @@
             const txId = document.getElementById('txId').value.trim();
 
             if (!isValid) {
-                tele.showPopup({title: 'Incomplete', message: 'Please fill all details!'});
+                tele.showPopup({title: 'Error', message: 'Please fill all fields!'});
                 return;
             }
-
             if (isPaid && !txId) {
-                tele.showPopup({title: 'Payment Missing', message: 'Please enter Transaction ID!'});
+                tele.showPopup({title: 'Payment', message: 'Enter Transaction ID!'});
                 return;
             }
 
-            // Send JSON back to Bot
-            const data = {
-                tourney_id: tourneyId,
-                form_data: formData,
-                tx_id: txId
-            };
-
-            tele.sendData(JSON.stringify(data));
+            tele.showPopup({
+                title: 'Success!',
+                message: 'Registration Sent! Wait for Admin Approval in Bot DM.',
+                buttons: [{type: 'ok'}]
+            }, function() {
+                const data = {
+                    tourney_id: tourneyId,
+                    form_data: formData,
+                    tx_id: txId
+                };
+                tele.sendData(JSON.stringify(data));
+                tele.close();
+            });
         });
     </script>
 </body>

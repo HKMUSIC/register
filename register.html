@@ -20,7 +20,7 @@
         
         .input-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; color: #aaaaaa; font-size: 14px; font-weight: bold; }
-        input, textarea { 
+        input { 
             width: 100%; padding: 12px; border-radius: 8px; 
             border: 1px solid #333; background: #1e1e1e; color: white; 
             box-sizing: border-box; font-size: 16px;
@@ -32,7 +32,6 @@
             padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
         }
         
-        /* QR Code Image Style */
         .qr-img {
             width: 200px; height: 200px; object-fit: contain;
             border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #fff;
@@ -58,20 +57,17 @@
             <div style="color: #f39c12; font-weight: bold; margin-bottom: 10px;">
                 💰 Entry Fee: ₹<span id="feeAmount">0</span>
             </div>
-            
             <img id="qrImage" class="qr-img hidden" alt="QR Code" />
-            
             <p style="font-size: 12px; color: #bbb; margin-top: 10px;">
                 UPI: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span>
             </p>
-            
             <div class="input-group" style="margin-top: 15px;">
                 <label style="color: #f39c12;">Transaction ID (UTR)</label>
                 <input type="text" id="txId" placeholder="Enter 12-digit Txn ID">
             </div>
         </div>
 
-        <button class="btn" id="submitBtn">Submit Registration 🚀</button>
+        <button class="btn" id="submitBtn">ADD DETAILS 📥</button>
         <p id="statusMsg" style="text-align: center; color: #aaa; margin-top: 10px; font-size: 12px;"></p>
     </div>
 
@@ -80,16 +76,14 @@
         tele.ready();
         tele.expand();
 
-        // 1. URL se Data Nikalna
         const params = new URLSearchParams(window.location.search);
         const tourneyId = params.get('id');
         const isPaid = params.get('paid') === 'true';
-        const rawFields = params.get('fields') || "Team Name,Player Details"; 
+        const rawFields = params.get('fields') || "Name,Team"; 
         const fee = params.get('fee');
         const upi = params.get('upi');
-        const qrUrl = params.get('qr'); // Bot se QR Link
+        const qrUrl = params.get('qr');
 
-        // 2. Dynamic Inputs Banana
         const fieldsContainer = document.getElementById('dynamicFields');
         const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
 
@@ -108,13 +102,10 @@
             fieldsContainer.appendChild(wrapper);
         });
 
-        // 3. Paid Logic (QR & Fee)
         if (isPaid) {
             document.getElementById('paySection').classList.remove('hidden');
             document.getElementById('feeAmount').innerText = fee;
             document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR";
-            
-            // QR Image Show karna
             if (qrUrl && qrUrl !== 'null' && qrUrl !== '') {
                 const img = document.getElementById('qrImage');
                 img.src = qrUrl;
@@ -122,15 +113,12 @@
             }
         }
 
-        // 4. Submit Button Logic (With Animation)
         document.getElementById('submitBtn').addEventListener('click', () => {
             const btn = document.getElementById('submitBtn');
             const status = document.getElementById('statusMsg');
-            
             let formData = "";
             let isValid = true;
 
-            // Fields Collect karna
             fieldList.forEach((_, index) => {
                 const input = document.getElementById("field_" + index);
                 const val = input.value.trim();
@@ -139,39 +127,25 @@
             });
 
             const txId = document.getElementById('txId').value.trim();
+            if (!isValid) return tele.showPopup({title: 'Error', message: 'Fill all fields!'});
+            if (isPaid && !txId) return tele.showPopup({title: 'Payment', message: 'Enter TxID!'});
 
-            // Validation
-            if (!isValid) {
-                tele.showPopup({title: 'Error', message: 'Please fill all fields!'});
-                return;
-            }
-            if (isPaid && !txId) {
-                tele.showPopup({title: 'Payment', message: 'Enter Transaction ID!'});
-                return;
-            }
-
-            // --- ANIMATION START ---
             btn.disabled = true;
-            btn.innerText = "Sending...";
-            status.innerText = "Please wait...";
-
+            btn.innerText = "Processing...";
+            
             const data = {
                 tourney_id: tourneyId,
                 form_data: formData,
                 tx_id: txId
             };
 
-            // 1 Second ka Delay (User satisfaction ke liye)
             setTimeout(() => {
-                btn.innerText = "✅ Sent Successfully!";
-                btn.style.backgroundColor = "#2ecc71"; // Green Color
-                status.innerText = "Closing form...";
-                
-                // Final Send (Bot ko data bhejna)
+                btn.innerText = "✅ Details Added!";
+                btn.style.backgroundColor = "#2ecc71";
                 setTimeout(() => {
                     tele.sendData(JSON.stringify(data));
-                }, 800); 
-            }, 1000);
+                }, 600); 
+            }, 800);
         });
     </script>
 </body>

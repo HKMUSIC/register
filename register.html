@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Tournament Registration</title>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 400px; margin: 0 auto; }
+        h2 { text-align: center; color: #3498db; }
+        label { display: block; margin: 15px 0 5px; color: #aaaaaa; }
+        input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1e1e1e; color: white; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #3498db; border: none; border-radius: 10px; color: white; font-size: 18px; margin-top: 25px; cursor: pointer; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📝 Registration Form</h2>
+        
+        <label>Team Name / Player Name</label>
+        <input type="text" id="teamName" placeholder="Enter name...">
+
+        <label>Player Details (UID, Level)</label>
+        <textarea id="details" rows="5" placeholder="Player 1: UID (Lvl 50)&#10;Player 2: UID (Lvl 45)..."></textarea>
+
+        <div id="paymentSection" class="hidden">
+            <label style="color: #e74c3c;">💰 Payment Transaction ID (TxID)</label>
+            <input type="text" id="txId" placeholder="Enter UPI Ref / Transaction ID">
+            <p style="font-size: 12px; color: #777;">Please pay using the QR code in the chat before submitting.</p>
+        </div>
+
+        <button class="btn" id="submitBtn">Submit Registration 🚀</button>
+    </div>
+
+    <script>
+        const tele = window.Telegram.WebApp;
+        tele.ready();
+        tele.expand();
+
+        // URL se params padhna (ID aur Type)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tourneyId = urlParams.get('id');
+        const isPaid = urlParams.get('paid') === 'true';
+
+        // Agar Paid hai to TxID box dikhao
+        if (isPaid) {
+            document.getElementById('paymentSection').classList.remove('hidden');
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', () => {
+            const teamName = document.getElementById('teamName').value;
+            const details = document.getElementById('details').value;
+            const txId = document.getElementById('txId').value;
+
+            if (!teamName || !details) {
+                tele.showPopup({title: 'Error', message: 'Please fill all details!'});
+                return;
+            }
+
+            if (isPaid && !txId) {
+                tele.showPopup({title: 'Error', message: 'Please enter Transaction ID!'});
+                return;
+            }
+
+            // Data bot ko bhejna
+            const data = {
+                tourney_id: tourneyId,
+                details: `Team: ${teamName}\nDetails:\n${details}`,
+                tx_id: txId
+            };
+
+            tele.sendData(JSON.stringify(data));
+        });
+    </script>
+</body>
+</html>

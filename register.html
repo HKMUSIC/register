@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <title>Tournament Registration</title>
+    <title>Registration</title>
     <style>
         body { 
             background-color: #121212; 
@@ -17,7 +17,6 @@
             align-items: center;
         }
         .container { width: 100%; max-width: 400px; }
-        h2 { color: #3498db; margin-bottom: 20px; text-align: center; }
         
         .input-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; color: #aaaaaa; font-size: 14px; font-weight: bold; }
@@ -32,7 +31,17 @@
             background: #2c2c2c; border: 1px solid #f39c12; 
             padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
         }
-        .pay-info { color: #f39c12; font-weight: bold; margin-bottom: 5px; }
+        
+        /* QR Code Image Style */
+        .qr-img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin: 10px auto;
+            display: block;
+            border: 2px solid #fff;
+        }
 
         .btn { 
             width: 100%; padding: 15px; background: #3498db; 
@@ -40,20 +49,26 @@
             font-size: 18px; font-weight: bold; margin-top: 25px; 
             cursor: pointer; 
         }
-        .btn:active { transform: scale(0.98); }
+        .btn:active { opacity: 0.8; transform: scale(0.98); }
         .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>📝 Registration</h2>
+        <h2 style="color: #3498db; text-align: center;">📝 Registration</h2>
         
         <div id="dynamicFields"></div>
 
         <div id="paySection" class="hidden pay-box">
-            <div class="pay-info">💰 Entry Fee: ₹<span id="feeAmount">0</span></div>
-            <p style="font-size: 13px; color: #e74c3c; font-weight: bold;">⚠️ SCAN QR IN CHAT ABOVE</p>
-            <p style="font-size: 12px; color: #bbb;">Pay to: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span></p>
+            <div style="color: #f39c12; font-weight: bold; margin-bottom: 10px;">
+                💰 Entry Fee: ₹<span id="feeAmount">0</span>
+            </div>
+
+            <img id="qrImage" class="qr-img hidden" alt="QR Code" />
+            
+            <p style="font-size: 12px; color: #bbb; margin-top: 10px;">
+                UPI: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span>
+            </p>
             
             <div class="input-group" style="margin-top: 15px;">
                 <label style="color: #f39c12;">Transaction ID (UTR)</label>
@@ -62,6 +77,7 @@
         </div>
 
         <button class="btn" id="submitBtn">Submit Registration 🚀</button>
+        <p id="statusMsg" style="text-align: center; color: #aaa; margin-top: 10px; font-size: 12px;"></p>
     </div>
 
     <script>
@@ -69,13 +85,16 @@
         tele.ready();
         tele.expand();
 
+        // Data Parse
         const params = new URLSearchParams(window.location.search);
         const tourneyId = params.get('id');
         const isPaid = params.get('paid') === 'true';
         const rawFields = params.get('fields') || "Team Name,Player Details"; 
         const fee = params.get('fee');
         const upi = params.get('upi');
+        const qrUrl = params.get('qr'); // Bot se QR Link aayega
 
+        // Fields Banana
         const fieldsContainer = document.getElementById('dynamicFields');
         const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
 
@@ -94,22 +113,33 @@
             fieldsContainer.appendChild(wrapper);
         });
 
+        // Paid Section Logic
         if (isPaid) {
             document.getElementById('paySection').classList.remove('hidden');
             document.getElementById('feeAmount').innerText = fee;
-            document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR in Chat";
+            document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR";
+            
+            // Agar QR URL hai, to Image dikhao
+            if (qrUrl && qrUrl !== 'null' && qrUrl !== '') {
+                const img = document.getElementById('qrImage');
+                img.src = qrUrl;
+                img.classList.remove('hidden');
+            }
         }
 
+        // Submit Button (SIMPLE LOGIC - NO POPUP)
         document.getElementById('submitBtn').addEventListener('click', () => {
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('statusMsg');
+            
             let formData = "";
             let isValid = true;
 
             fieldList.forEach((_, index) => {
                 const input = document.getElementById("field_" + index);
                 const val = input.value.trim();
-                const name = input.dataset.name;
                 if (!val) isValid = false;
-                formData += `<b>${name}:</b> ${val}\n`;
+                formData += `<b>${input.dataset.name}:</b> ${val}\n`;
             });
 
             const txId = document.getElementById('txId').value.trim();
@@ -123,19 +153,21 @@
                 return;
             }
 
-            tele.showPopup({
-                title: 'Success!',
-                message: 'Registration Sent! Wait for Admin Approval in Bot DM.',
-                buttons: [{type: 'ok'}]
-            }, function() {
-                const data = {
-                    tourney_id: tourneyId,
-                    form_data: formData,
-                    tx_id: txId
-                };
+            // --- DIRECT SENDING (Popup Hata Diya) ---
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+            status.innerText = "Do not close, sending data...";
+
+            const data = {
+                tourney_id: tourneyId,
+                form_data: formData,
+                tx_id: txId
+            };
+            
+            // Data bhej kar band kar do
+            setTimeout(() => {
                 tele.sendData(JSON.stringify(data));
-                tele.close();
-            });
+            }, 500); // Thoda delay taaki animation dikhe
         });
     </script>
 </body>

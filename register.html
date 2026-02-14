@@ -32,24 +32,19 @@
             padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
         }
         
-        /* QR Code Image Style */
         .qr-img {
-            width: 200px;
-            height: 200px;
-            object-fit: contain;
-            border-radius: 10px;
-            margin: 10px auto;
-            display: block;
-            border: 2px solid #fff;
+            width: 200px; height: 200px; object-fit: contain;
+            border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #fff;
         }
 
         .btn { 
             width: 100%; padding: 15px; background: #3498db; 
             border: none; border-radius: 10px; color: white; 
             font-size: 18px; font-weight: bold; margin-top: 25px; 
-            cursor: pointer; 
+            cursor: pointer; transition: 0.3s;
         }
-        .btn:active { opacity: 0.8; transform: scale(0.98); }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+        .success-btn { background: #2ecc71 !important; content: "✅ Sent!"; }
         .hidden { display: none; }
     </style>
 </head>
@@ -63,13 +58,10 @@
             <div style="color: #f39c12; font-weight: bold; margin-bottom: 10px;">
                 💰 Entry Fee: ₹<span id="feeAmount">0</span>
             </div>
-
             <img id="qrImage" class="qr-img hidden" alt="QR Code" />
-            
             <p style="font-size: 12px; color: #bbb; margin-top: 10px;">
                 UPI: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span>
             </p>
-            
             <div class="input-group" style="margin-top: 15px;">
                 <label style="color: #f39c12;">Transaction ID (UTR)</label>
                 <input type="text" id="txId" placeholder="Enter 12-digit Txn ID">
@@ -85,16 +77,14 @@
         tele.ready();
         tele.expand();
 
-        // Data Parse
         const params = new URLSearchParams(window.location.search);
         const tourneyId = params.get('id');
         const isPaid = params.get('paid') === 'true';
         const rawFields = params.get('fields') || "Team Name,Player Details"; 
         const fee = params.get('fee');
         const upi = params.get('upi');
-        const qrUrl = params.get('qr'); // Bot se QR Link aayega
+        const qrUrl = params.get('qr');
 
-        // Fields Banana
         const fieldsContainer = document.getElementById('dynamicFields');
         const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
 
@@ -113,13 +103,10 @@
             fieldsContainer.appendChild(wrapper);
         });
 
-        // Paid Section Logic
         if (isPaid) {
             document.getElementById('paySection').classList.remove('hidden');
             document.getElementById('feeAmount').innerText = fee;
             document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR";
-            
-            // Agar QR URL hai, to Image dikhao
             if (qrUrl && qrUrl !== 'null' && qrUrl !== '') {
                 const img = document.getElementById('qrImage');
                 img.src = qrUrl;
@@ -127,7 +114,6 @@
             }
         }
 
-        // Submit Button (SIMPLE LOGIC - NO POPUP)
         document.getElementById('submitBtn').addEventListener('click', () => {
             const btn = document.getElementById('submitBtn');
             const status = document.getElementById('statusMsg');
@@ -153,21 +139,28 @@
                 return;
             }
 
-            // --- DIRECT SENDING (Popup Hata Diya) ---
-            btn.innerText = "Sending...";
+            // --- ANIMATION LOGIC ---
             btn.disabled = true;
-            status.innerText = "Do not close, sending data...";
+            btn.innerText = "Sending...";
+            status.innerText = "Please wait...";
 
             const data = {
                 tourney_id: tourneyId,
                 form_data: formData,
                 tx_id: txId
             };
-            
-            // Data bhej kar band kar do
+
+            // 1.5 Second ka wait taaki user ko lage process ho raha hai
             setTimeout(() => {
-                tele.sendData(JSON.stringify(data));
-            }, 500); // Thoda delay taaki animation dikhe
+                btn.innerText = "✅ Sent Successfully!";
+                btn.style.backgroundColor = "#2ecc71"; // Green Color
+                status.innerText = "Closing form...";
+                
+                // Phir Data bhejo
+                setTimeout(() => {
+                    tele.sendData(JSON.stringify(data));
+                }, 800); 
+            }, 1000);
         });
     </script>
 </body>

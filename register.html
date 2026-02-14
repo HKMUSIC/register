@@ -32,6 +32,7 @@
             padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
         }
         
+        /* QR Code Image Style */
         .qr-img {
             width: 200px; height: 200px; object-fit: contain;
             border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #fff;
@@ -44,7 +45,6 @@
             cursor: pointer; transition: 0.3s;
         }
         .btn:disabled { background: #555; cursor: not-allowed; }
-        .success-btn { background: #2ecc71 !important; content: "✅ Sent!"; }
         .hidden { display: none; }
     </style>
 </head>
@@ -58,10 +58,13 @@
             <div style="color: #f39c12; font-weight: bold; margin-bottom: 10px;">
                 💰 Entry Fee: ₹<span id="feeAmount">0</span>
             </div>
+            
             <img id="qrImage" class="qr-img hidden" alt="QR Code" />
+            
             <p style="font-size: 12px; color: #bbb; margin-top: 10px;">
                 UPI: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span>
             </p>
+            
             <div class="input-group" style="margin-top: 15px;">
                 <label style="color: #f39c12;">Transaction ID (UTR)</label>
                 <input type="text" id="txId" placeholder="Enter 12-digit Txn ID">
@@ -77,14 +80,16 @@
         tele.ready();
         tele.expand();
 
+        // 1. URL se Data Nikalna
         const params = new URLSearchParams(window.location.search);
         const tourneyId = params.get('id');
         const isPaid = params.get('paid') === 'true';
         const rawFields = params.get('fields') || "Team Name,Player Details"; 
         const fee = params.get('fee');
         const upi = params.get('upi');
-        const qrUrl = params.get('qr');
+        const qrUrl = params.get('qr'); // Bot se QR Link
 
+        // 2. Dynamic Inputs Banana
         const fieldsContainer = document.getElementById('dynamicFields');
         const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
 
@@ -103,10 +108,13 @@
             fieldsContainer.appendChild(wrapper);
         });
 
+        // 3. Paid Logic (QR & Fee)
         if (isPaid) {
             document.getElementById('paySection').classList.remove('hidden');
             document.getElementById('feeAmount').innerText = fee;
             document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR";
+            
+            // QR Image Show karna
             if (qrUrl && qrUrl !== 'null' && qrUrl !== '') {
                 const img = document.getElementById('qrImage');
                 img.src = qrUrl;
@@ -114,6 +122,7 @@
             }
         }
 
+        // 4. Submit Button Logic (With Animation)
         document.getElementById('submitBtn').addEventListener('click', () => {
             const btn = document.getElementById('submitBtn');
             const status = document.getElementById('statusMsg');
@@ -121,6 +130,7 @@
             let formData = "";
             let isValid = true;
 
+            // Fields Collect karna
             fieldList.forEach((_, index) => {
                 const input = document.getElementById("field_" + index);
                 const val = input.value.trim();
@@ -130,6 +140,7 @@
 
             const txId = document.getElementById('txId').value.trim();
 
+            // Validation
             if (!isValid) {
                 tele.showPopup({title: 'Error', message: 'Please fill all fields!'});
                 return;
@@ -139,7 +150,7 @@
                 return;
             }
 
-            // --- ANIMATION LOGIC ---
+            // --- ANIMATION START ---
             btn.disabled = true;
             btn.innerText = "Sending...";
             status.innerText = "Please wait...";
@@ -150,13 +161,13 @@
                 tx_id: txId
             };
 
-            // 1.5 Second ka wait taaki user ko lage process ho raha hai
+            // 1 Second ka Delay (User satisfaction ke liye)
             setTimeout(() => {
                 btn.innerText = "✅ Sent Successfully!";
                 btn.style.backgroundColor = "#2ecc71"; // Green Color
                 status.innerText = "Closing form...";
                 
-                // Phir Data bhejo
+                // Final Send (Bot ko data bhejna)
                 setTimeout(() => {
                     tele.sendData(JSON.stringify(data));
                 }, 800); 

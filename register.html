@@ -6,147 +6,70 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <title>Registration</title>
     <style>
-        body { 
-            background-color: #121212; 
-            color: #ffffff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 20px; 
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        body { background-color: #121212; color: #fff; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 400px; }
-        
-        .input-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; color: #aaaaaa; font-size: 14px; font-weight: bold; }
-        input { 
-            width: 100%; padding: 12px; border-radius: 8px; 
-            border: 1px solid #333; background: #1e1e1e; color: white; 
-            box-sizing: border-box; font-size: 16px;
-        }
-        input:focus { border-color: #3498db; outline: none; }
-
-        .pay-box {
-            background: #2c2c2c; border: 1px solid #f39c12; 
-            padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;
-        }
-        
-        .qr-img {
-            width: 200px; height: 200px; object-fit: contain;
-            border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #fff;
-        }
-
-        .btn { 
-            width: 100%; padding: 15px; background: #3498db; 
-            border: none; border-radius: 10px; color: white; 
-            font-size: 18px; font-weight: bold; margin-top: 25px; 
-            cursor: pointer; transition: 0.3s;
-        }
-        .btn:disabled { background: #555; cursor: not-allowed; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #aaa; font-size: 14px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1e1e1e; color: #fff; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #3498db; border: none; border-radius: 10px; color: #fff; font-size: 18px; font-weight: bold; margin-top: 25px; cursor: pointer; }
+        .pay-box { background: #2c2c2c; border: 1px solid #f39c12; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2 style="color: #3498db; text-align: center;">📝 Registration</h2>
-        
+        <h2>📝 Registration</h2>
         <div id="dynamicFields"></div>
-
         <div id="paySection" class="hidden pay-box">
-            <div style="color: #f39c12; font-weight: bold; margin-bottom: 10px;">
-                💰 Entry Fee: ₹<span id="feeAmount">0</span>
-            </div>
-            <img id="qrImage" class="qr-img hidden" alt="QR Code" />
-            <p style="font-size: 12px; color: #bbb; margin-top: 10px;">
-                UPI: <span id="upiId" style="background:#444; padding:3px; border-radius:4px;"></span>
-            </p>
+            <div style="color: #f39c12;">💰 Fee: ₹<span id="feeAmount">0</span></div>
             <div class="input-group" style="margin-top: 15px;">
-                <label style="color: #f39c12;">Transaction ID (UTR)</label>
-                <input type="text" id="txId" placeholder="Enter 12-digit Txn ID">
+                <label>Transaction ID</label>
+                <input type="text" id="txId" placeholder="Enter Txn ID">
             </div>
         </div>
-
-        <button class="btn" id="submitBtn">ADD DETAILS 📥</button>
-        <p id="statusMsg" style="text-align: center; color: #aaa; margin-top: 10px; font-size: 12px;"></p>
+        <button class="btn" id="addBtn">ADD DETAILS 📥</button>
     </div>
 
     <script>
         const tele = window.Telegram.WebApp;
-        tele.ready();
-        tele.expand();
-
+        tele.ready(); tele.expand();
         const params = new URLSearchParams(window.location.search);
-        const tourneyId = params.get('id');
-        const isPaid = params.get('paid') === 'true';
-        const rawFields = params.get('fields') || "Name,Team"; 
-        const fee = params.get('fee');
-        const upi = params.get('upi');
-        const qrUrl = params.get('qr');
 
         const fieldsContainer = document.getElementById('dynamicFields');
-        const fieldList = rawFields.split(',').map(s => s.trim()).filter(s => s);
+        const fieldList = (params.get('fields') || "Name,Team").split(',');
 
-        fieldList.forEach((fieldName, index) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'input-group';
-            const label = document.createElement('label');
-            label.innerText = fieldName;
-            const input = document.createElement('input');
-            input.type = "text";
-            input.id = "field_" + index;
-            input.placeholder = "Enter " + fieldName;
-            input.dataset.name = fieldName;
-            wrapper.appendChild(label);
-            wrapper.appendChild(input);
-            fieldsContainer.appendChild(wrapper);
+        fieldList.forEach((f, i) => {
+            const div = document.createElement('div');
+            div.className = 'input-group';
+            div.innerHTML = `<label>${f}</label><input type="text" id="f${i}" data-name="${f}" placeholder="Enter ${f}">`;
+            fieldsContainer.appendChild(div);
         });
 
-        if (isPaid) {
+        if (params.get('paid') === 'true') {
             document.getElementById('paySection').classList.remove('hidden');
-            document.getElementById('feeAmount').innerText = fee;
-            document.getElementById('upiId').innerText = upi && upi !== 'null' ? upi : "Scan QR";
-            if (qrUrl && qrUrl !== 'null' && qrUrl !== '') {
-                const img = document.getElementById('qrImage');
-                img.src = qrUrl;
-                img.classList.remove('hidden');
-            }
+            document.getElementById('feeAmount').innerText = params.get('fee');
         }
 
-        document.getElementById('submitBtn').addEventListener('click', () => {
-            const btn = document.getElementById('submitBtn');
-            const status = document.getElementById('statusMsg');
+        document.getElementById('addBtn').onclick = () => {
             let formData = "";
             let isValid = true;
 
-            fieldList.forEach((_, index) => {
-                const input = document.getElementById("field_" + index);
-                const val = input.value.trim();
-                if (!val) isValid = false;
-                formData += `<b>${input.dataset.name}:</b> ${val}\n`;
+            fieldList.forEach((_, i) => {
+                const input = document.getElementById(`f${i}`);
+                if (!input.value) isValid = false;
+                formData += `<b>${input.dataset.name}:</b> ${input.value}\n`;
             });
 
-            const txId = document.getElementById('txId').value.trim();
-            if (!isValid) return tele.showPopup({title: 'Error', message: 'Fill all fields!'});
-            if (isPaid && !txId) return tele.showPopup({title: 'Payment', message: 'Enter TxID!'});
+            const txId = document.getElementById('txId').value;
+            if (!isValid) return tele.showPopup({message: 'Sare details bharein!'});
 
-            btn.disabled = true;
-            btn.innerText = "Processing...";
+            const data = { tourney_id: params.get('id'), form_data: formData, tx_id: txId };
             
-            const data = {
-                tourney_id: tourneyId,
-                form_data: formData,
-                tx_id: txId
-            };
-
+            document.getElementById('addBtn').innerText = "✅ Added!";
             setTimeout(() => {
-                btn.innerText = "✅ Details Added!";
-                btn.style.backgroundColor = "#2ecc71";
-                setTimeout(() => {
-                    tele.sendData(JSON.stringify(data));
-                }, 600); 
-            }, 800);
-        });
+                tele.sendData(JSON.stringify(data));
+            }, 600);
+        };
     </script>
 </body>
 </html>
